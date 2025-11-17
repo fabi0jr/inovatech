@@ -1,0 +1,17 @@
+# Ignorar o ambiente virtual do Python
+venv/
+.venv/
+
+# Ignorar caches do Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignorar pastas de treinamento (MUITO IMPORTANTE)
+training/datasets/
+training_runs/
+
+# Ignorar configurações do Git e IDE
+.git/
+.vscode/
+.idea/

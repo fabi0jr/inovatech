@@ -1,0 +1,25 @@
+# clawai/Dockerfile.inference
+
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# ATUALIZADO: Adicionamos ffmpeg, libsm6, libxext6 (essenciais para o OpenCV processar vídeo) + curl para healthcheck
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    ffmpeg \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# ATUALIZADO: Trocamos opencv-python por opencv-python-headless
+RUN pip install --no-cache-dir flask flask-cors opencv-python-headless ultralytics pika requests
+
+COPY . .
+
+EXPOSE 5002
+
+CMD ["python", "src/inference_service/main.py"]
