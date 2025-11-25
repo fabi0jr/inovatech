@@ -1,7 +1,7 @@
 import os
 
 # --- Configurações da IA ---
-MODEL_PATH = "models/best.pt"
+MODEL_PATH = "models/paperBall.pt"
 ZONA_DE_DECISAO_X = 320
 
 # --- Configurações de Rede dos Serviços ---
@@ -15,6 +15,6 @@ RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 RABBITMQ_QUEUE = "fila_decisoes_ia"
 # --- Mapeamento de Decisões ---
 DECISION_MAP = {
-    "Rock": "esquerda",
+    "paperball": "esquerda",
     "Paper": "direita"
 }

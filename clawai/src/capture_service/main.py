@@ -7,7 +7,9 @@ import os
 
 app = Flask(__name__)
 
-video_capture = cv2.VideoCapture(0) 
+VIDEOCAPTUREID = int(os.getenv("VIDEOCAPTUREID"))
+
+video_capture = cv2.VideoCapture(VIDEOCAPTUREID) 
 
 CAMERA_NAME = "Camera 01"
 CAMERA_WIDTH = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))

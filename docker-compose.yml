@@ -84,6 +84,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - NESTJS_HEARTBEAT_URL=http://backend:3001/stats/heartbeat
+      - VIDEOCAPTUREID=0
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
       interval: 10s
