@@ -248,7 +248,6 @@ pgdata/
 # ============================================
 # Uploads do backend
 clawai-backend/uploads/
-*.png
 *.jpg
 *.jpeg
 *.gif
