@@ -5,7 +5,7 @@ const { ReadlineParser } = require('@serialport/parser-readline');
 // --- CONFIGURAÇÕES ---
 const RABBIT_URL = 'amqp://localhost'; 
 const QUEUE_NAME = 'fila_deteccao'; 
-const CAMINHO_PORTA = 'COM9'; // CONFIRA SUA PORTA
+const CAMINHO_PORTA = 'COM8'; // CONFIRA SUA PORTA
 const BAUD_RATE = 9600;
 
 // Configuração de Persistência

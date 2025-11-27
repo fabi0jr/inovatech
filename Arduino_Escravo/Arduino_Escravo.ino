@@ -123,7 +123,7 @@ void executarMovimento(int direcao) {
   
   // 2. Desce o Braço (Motor 1)
   // (Baseado no seu código: -3 voltas)
-  motor1.step(-3 * STEPS_PER_REVOLUTION);
+  motor1.step(-3.1 * STEPS_PER_REVOLUTION);
   relaxarMotores(); 
   
   // 3. Pega o objeto
