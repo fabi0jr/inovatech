@@ -1,0 +1,141 @@
+services:
+  # ---------------------------
+  # INFRAESTRUTURA (Banco e Fila)
+  # ---------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: ino-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: clawai_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - robo-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: ino-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - robo-net
+
+  # ---------------------------
+  # BACKEND (NestJS)
+  # ---------------------------
+  backend:
+    build:
+      context: ./clawai-backend
+      dockerfile: Dockerfile
+    container_name: ino-backend
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: admin
+      DATABASE_PASSWORD: password
+      DATABASE_NAME: clawai_db
+      RABBITMQ_HOST: rabbitmq
+      PORT: 3001
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - robo-net
+
+  # ---------------------------
+  # FRONTEND (React)
+  # ---------------------------
+  frontend:
+    build:
+      context: ./clawai_frontend
+      dockerfile: Dockerfile
+    container_name: ino-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./clawai_frontend/src:/app/src
+      - ./clawai_frontend/public:/app/public
+      - ./clawai_frontend/index.html:/app/index.html
+    depends_on:
+      - backend
+    networks:
+      - robo-net
+
+  # ---------------------------
+  # PYTHON IA & CÂMERA
+  # ---------------------------
+  capture-service:
+    build:
+      context: ./clawai
+      dockerfile: Dockerfile.capture
+    container_name: ino-capture
+    ports:
+      - "5001:5001"
+    privileged: true
+    devices:
+      - "/dev/video0:/dev/video0"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NESTJS_HEARTBEAT_URL=http://backend:3001/stats/heartbeat
+      - VIDEOCAPTUREID=0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - robo-net
+
+  inference-service:
+    build:
+      context: ./clawai
+      dockerfile: Dockerfile.inference
+    container_name: ino-inference
+    ports:
+      - "5002:5002"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - RABBITMQ_HOST=rabbitmq
+      - CAPTURE_SERVICE_URL=http://capture-service:5001/video_feed
+      - NESTJS_API_URL=http://backend:3001/detections
+      - NESTJS_HEARTBEAT_URL=http://backend:3001/stats/heartbeat
+      - INFERENCE_API_HOST=0.0.0.0
+      - INFERENCE_API_PORT=5002
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      capture-service:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - robo-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+# Definição da Rede e Volumes
+networks:
+  robo-net:
+    driver: bridge
+
+volumes:
+  pgdata:

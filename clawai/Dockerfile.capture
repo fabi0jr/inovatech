@@ -1,0 +1,24 @@
+# clawai/Dockerfile.capture
+
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# ATUALIZADO: Mesmas dependências robustas + curl para healthcheck
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# ATUALIZADO: opencv-python-headless
+RUN pip install --no-cache-dir flask opencv-python-headless requests
+
+COPY . .
+
+EXPOSE 5001
+
+CMD ["python", "src/capture_service/main.py"]
