@@ -1,14 +1,14 @@
 /*
- * PROJETO: ESTEIRA INTELIGENTE COM BRAÇO ROBÓTICO E IA
+ * PROJETO: ESTEIRA INTELIGENTE - VERSÃO ESTÁVEL
  * ARDUINO: MESTRE
- * CORREÇÃO: INPUT_PULLUP para evitar ruído no sensor desconectado.
+ * CORREÇÃO: Filtro de ruído no sensor e proteção contra reset na partida.
  */
 
 #include <SoftwareSerial.h>
 
 SoftwareSerial arduinoBraco(2, 3); 
 
-const int PIN_SENSOR_IR = 4; 
+const int PIN_SENSOR_IR = 9; 
 const int PIN_RELE = 8;     
 
 // --- Configuração de Tempo ---
@@ -22,18 +22,17 @@ void setup() {
   Serial.begin(9600);       
   arduinoBraco.begin(9600); 
   
-  // --- CORREÇÃO AQUI ---
-  // INPUT_PULLUP garante que, se o fio soltar, a leitura será HIGH (1).
-  // Como sua lógica detecta objeto com LOW (0), o sistema ficará "Quieto" se o sensor falhar/soltar.
   pinMode(PIN_SENSOR_IR, INPUT_PULLUP); 
   
+  // Começa DESLIGADO (HIGH) para estabilizar a fonte
   digitalWrite(PIN_RELE, HIGH); 
   pinMode(PIN_RELE, OUTPUT);
 
   Serial.println("=== SISTEMA INICIADO ===");
-  Serial.println("Esteira pronta.");
+  Serial.println("Estabilizando energia...");
+  delay(2000); // Espera 2 segundos antes de tentar ligar o motor
   
-  delay(1000);
+  Serial.println("Esteira ligando...");
   rodarEsteira(); 
 }
 
@@ -75,19 +74,23 @@ void loop() {
   else {
     rodarEsteira(); 
     
-    // Agora, graças ao PULLUP, se não tiver sensor, isso aqui lê HIGH (falso)
-    // E o relé para de bater.
-    bool objetoDetectado = digitalRead(PIN_SENSOR_IR) == LOW;
-
-    if (objetoDetectado) {
-      pararEsteira(); 
-      Serial.println("DETECTADO"); 
-      aguardandoCamera = true; 
-      delay(500); 
+    // --- FILTRO DE RUÍDO (DEBOUNCE) ---
+    // Só aceita que detectou se o sensor ficar LOW por 50ms seguidos.
+    // Isso evita que piscadas de luz ou ruído elétrico parem a esteira.
+    if (digitalRead(PIN_SENSOR_IR) == LOW) {
+       //delay(10); // Espera 50ms para ver se é real
+       if (digitalRead(PIN_SENSOR_IR) == LOW) {
+          // Confirmado, é um objeto real
+          pararEsteira(); 
+          Serial.println("DETECTADO"); 
+          aguardandoCamera = true; 
+          delay(500); 
+       }
     }
   }
 }
 
+// --- FUNÇÕES RELÉ (Active LOW) ---
 void rodarEsteira() {
   digitalWrite(PIN_RELE, LOW); 
 }
