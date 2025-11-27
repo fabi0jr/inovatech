@@ -15,6 +15,8 @@ RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 RABBITMQ_QUEUE = "fila_decisoes_ia"
 # --- Mapeamento de Decisões ---
 DECISION_MAP = {
-    "paperball": "esquerda",
-    "Paper": "direita"
+    "circulo": "esquerda",
+    "hexagono": "esquerda",
+    "quadrado": "direita",
+    "triangulo": "direita"
 }
