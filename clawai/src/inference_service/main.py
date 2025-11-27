@@ -47,7 +47,7 @@ def enviar_deteccao_para_backend(dados_deteccao):
     try:
         class_name = dados_deteccao["objeto_detectado"]
         categoria_map = {"Rock": "A", "Paper": "B", "Scissors": "C"}
-        status_map = {"Rock": "Pedra (Cat A)", "Paper": "Papel (Cat B)", "Scissors": "Tesoura (Cat C)"}
+        status_map = {"circulo": "Circulo (Cat A)", "hexagono": "Hexagono (Cat B)", "quadrado": "Quadrado (Cat C)", "triangulo": "Triangulo (Cat D)"}
 
         dto_para_nest = {
             "type": class_name,
