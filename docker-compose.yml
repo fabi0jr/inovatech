@@ -86,11 +86,11 @@ services:
       - "5001:5001"
     privileged: true
     devices:
-      - "/dev/video2:/dev/video2"
+      - "/dev/video0:/dev/video0"
     environment:
       - PYTHONUNBUFFERED=1
       - NESTJS_HEARTBEAT_URL=http://backend:3001/stats/heartbeat
-      - VIDEOCAPTUREID=2
+      - VIDEOCAPTUREID=0
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
       interval: 10s

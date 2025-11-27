@@ -3,6 +3,9 @@ import os
 # --- Configurações da IA ---
 MODEL_PATH = "models/best.pt"
 ZONA_DE_DECISAO_X = 320
+CAMERA_ROIS = {
+    '0': [172, 168, 455, 351]
+}
 
 # --- Configurações de Rede dos Serviços ---
 # Lê do 'os.getenv' primeiro, se não achar, usa o valor padrão 'localhost'

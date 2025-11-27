@@ -162,8 +162,7 @@ def frame_reader_loop():
 # --- THREAD 2: O LOOP DE INFERÊNCIA (MODIFICADO) ---
 def inference_tracking_loop():
     """
-    Thread dedicado a rodar a IA.
-    Não lê mais do video, apenas pega o 'latest_raw_frame' e processa.
+    Thread dedicado a rodar a IA com suporte a ROI (Região de Interesse).
     """
     global latest_annotated_frame, latest_detections, ids_ja_processados, avg_processing_time_ms
 
@@ -178,37 +177,62 @@ def inference_tracking_loop():
 
     model = YOLO(MODEL_PATH)
     
-    # Pega a resolução (vamos assumir 640x480, mas idealmente viria do frame)
-    frame_height, frame_width = 480, 640 
+    # Tenta carregar o ROI da configuração (assumindo câmera '0' por padrão)
+    # Se quiser dinâmico, pode vir de uma var de ambiente
+    roi_coords = settings.CAMERA_ROIS.get('0') 
+    
+    print(" [ia] Loop de inferência aguardando o primeiro frame...")
     
     processing_times = []
-    
-    print(" [ia] Loop de inferência aguardando o primeiro frame do leitor...")
     frames_processed = 0
+
     while True:
-        # 1. Pega o frame mais recente do Thread A
+        # 1. Pega o frame mais recente
         with frame_lock:
             if latest_raw_frame is None:
                 if frames_processed == 0:
-                    print(" [ia] ⏳ Aguardando primeiro frame do capture-service...")
-                time.sleep(0.5) # Espera o reader_loop pegar o primeiro frame
+                    time.sleep(0.5)
                 continue
             frame = latest_raw_frame.copy()
-            
-            # Atualiza a resolução dinamicamente
-            if frame_height != frame.shape[0] or frame_width != frame.shape[1]:
-                frame_height, frame_width = frame.shape[0], frame.shape[1]
-                print(f" [ia] ✓ Resolução do frame detectada: {frame_width}x{frame_height}")
-            
-            if frames_processed == 0:
-                print(" [ia] ✓ Primeiro frame recebido! Iniciando processamento...")
 
         start_time = time.time()
         
-        # 2. Processa o frame (sem alteração daqui para baixo)
-        results = model.track(frame, persist=True, conf=0.5, verbose=False)
+        # 2. APLICAR ROI (Corte)
+        # Se tiver ROI configurado, cortamos a imagem. Se não, usa a imagem cheia.
+        if roi_coords:
+            x1, y1, x2, y2 = roi_coords
+            # Garante que as coordenadas estão dentro da imagem
+            h, w = frame.shape[:2]
+            x1, y1 = max(0, x1), max(0, y1)
+            x2, y2 = min(w, x2), min(h, y2)
+            
+            # O "crop" é a imagem pequena que a IA vai ver
+            frame_para_ia = frame[y1:y2, x1:x2]
+            offset_x, offset_y = x1, y1
+        else:
+            frame_para_ia = frame
+            offset_x, offset_y = 0, 0
+
+        # 3. Inferência na imagem (pode ser a cortada ou a cheia)
+        # persist=True é importante para manter o ID do tracking mesmo se o objeto mover
+        results = model.track(frame_para_ia, persist=True, conf=0.5, verbose=False)
         
-        annotated_frame = results[0].plot()
+        # 4. VISUALIZAÇÃO INTELIGENTE
+        # O plot() desenha as caixas na imagem que foi processada (o recorte)
+        annotated_crop = results[0].plot()
+        
+        # Criamos o frame final copiando o original
+        annotated_final_frame = frame.copy()
+        
+        # Se usamos ROI, precisamos "colar" o recorte desenhado de volta na imagem original
+        if roi_coords:
+            # Sobrepõe a área recortada (agora desenhada) na posição original
+            annotated_final_frame[y1:y2, x1:x2] = annotated_crop
+            # (Opcional) Desenha um retângulo branco para mostrar onde é a ROI
+            cv2.rectangle(annotated_final_frame, (x1, y1), (x2, y2), (255, 255, 255), 1)
+        else:
+            annotated_final_frame = annotated_crop
+
         detections_this_frame = []
         
         if results[0].boxes.id is not None:
@@ -218,13 +242,21 @@ def inference_tracking_loop():
             clss = results[0].boxes.cls.int().cpu().tolist()
 
             for box, track_id, conf, cls_id in zip(boxes, track_ids, confs, clss):
-                center_x = int((box[0] + box[2]) / 2)
-                class_name = model.names[cls_id]
+                # As coordenadas 'box' são relativas ao RECORTE.
+                # Precisamos somar o offset para saber onde elas estão na tela CHEIA (1280x720)
+                box_x1_local = box[0]
+                box_x2_local = box[2]
                 
-                detections_this_frame.append(f"ID {track_id}: {class_name} ({conf:.2f})")
+                # Calculando centro Global
+                center_x_local = (box_x1_local + box_x2_local) / 2
+                center_x_global = int(center_x_local + offset_x) # Mapeamento crucial!
+                
+                class_name = model.names[cls_id]
+                detections_this_frame.append(f"ID {track_id}: {class_name}")
 
-                if center_x > ZONA_DE_DECISAO_X and track_id not in ids_ja_processados:
-                    print(f" [ia] Objeto ID {track_id} ({class_name}) cruzou a zona de decisão.")
+                # Lógica de Zona de Decisão usando coordenada GLOBAL
+                if center_x_global > ZONA_DE_DECISAO_X and track_id not in ids_ja_processados:
+                    print(f" [ia] Objeto ID {track_id} ({class_name}) cruzou zona (X={center_x_global}).")
 
                     mensagem_web = {
                         "track_id": track_id,
@@ -242,35 +274,23 @@ def inference_tracking_loop():
                             "timestamp": time.time()
                         }
                         publicar_decisao(channel, json.dumps(mensagem_hardware))
-                    else:
-                        print(f" [ia] Nenhuma ação de hardware definida para '{class_name}'.")
 
                     ids_ja_processados.add(track_id)
-        
-        # Cálculo do Tempo de Processamento
-        end_time = time.time()
-        loop_time_ms = (end_time - start_time) * 1000
-        processing_times.append(loop_time_ms)
-        if len(processing_times) > 50:
-            processing_times.pop(0)
-            
-        avg_processing_time_ms = sum(processing_times) / len(processing_times)
 
-        # Atualiza o frame anotado para o servidor Flask
+        # Atualiza métricas e frame final
+        end_time = time.time()
+        avg_processing_time_ms = ((end_time - start_time) * 1000 + avg_processing_time_ms) / 2 # Média móvel simples
+
         frames_processed += 1
         with data_lock:
             latest_detections = detections_this_frame
-            ret, buffer = cv2.imencode('.jpg', annotated_frame)
+            ret, buffer = cv2.imencode('.jpg', annotated_final_frame)
             if ret:
                 latest_annotated_frame = buffer.tobytes()
-                if frames_processed == 1:
-                    print(" [ia] ✓ Primeiro frame anotado gerado com sucesso!")
-            else:
-                print(" [ia] ✗ Erro ao codificar frame anotado")
         
-        if frames_processed % 100 == 0:  # Log a cada 100 frames processados
-            print(f" [ia] ✓ {frames_processed} frames processados | Tempo médio: {avg_processing_time_ms:.1f}ms")
-                
+        if frames_processed % 100 == 0:
+            print(f" [ia] ✓ {frames_processed} frames | Latência: {avg_processing_time_ms:.1f}ms")
+            
     connection.close()
 
 # --- THREAD 3: O SERVIDOR FLASK (Melhorado) ---
