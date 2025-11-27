@@ -2,9 +2,9 @@ export interface Detection {
     id: string;
     timestamp: string;
     type: string;
-    category: 'A' | 'B' | 'C';
+    category: 'A' | 'B' | 'C'| 'D';
     confidence: number;
-    status: string;
+    status?: string;
   }
   
 // Novo tipo para nossos Stats
@@ -13,6 +13,7 @@ export interface DashboardStats {
     categoryA: number;
     categoryB: number;
     categoryC: number;
+    categoryD: number;
     unclassified: number;
   };
   performance: {

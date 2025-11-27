@@ -26,6 +26,7 @@ export class StatsService {
       categoryA: 0,
       categoryB: 0,
       categoryC: 0,
+      categoryD: 0,
       unclassified: 0,
     };
     let totalDetections = 0;
@@ -42,6 +43,9 @@ export class StatsService {
         classifiedDetections += count;
       } else if (row.category === 'C') {
         itemSeparation.categoryC = count;
+        classifiedDetections += count;
+      } else if (row.category === 'D') {
+        itemSeparation.categoryD = count;
         classifiedDetections += count;
       } else {
         itemSeparation.unclassified = count;

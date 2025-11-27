@@ -46,15 +46,31 @@ NESTJS_API_URL = os.getenv("NESTJS_API_URL", "http://localhost:3001/detections")
 def enviar_deteccao_para_backend(dados_deteccao):
     try:
         class_name = dados_deteccao["objeto_detectado"]
-        categoria_map = {"Rock": "A", "Paper": "B", "Scissors": "C"}
-        status_map = {"circulo": "Circulo (Cat A)", "hexagono": "Hexagono (Cat B)", "quadrado": "Quadrado (Cat C)", "triangulo": "Triangulo (Cat D)"}
+        categoria_map = {
+            "circulo": "A",
+            "hexagono": "B",
+            "quadrado": "C",
+            "triangulo": "D"
+        }
+        
+        status_map = {
+            "circulo": "Circulo (Cat A)", 
+            "hexagono": "Hexagono (Cat B)", 
+            "quadrado": "Quadrado (Cat C)", 
+            "triangulo": "Triangulo (Cat D)"
+        }
+        categoria_detectada = categoria_map.get(class_name, "UNCLASSIFIED")
 
         dto_para_nest = {
             "type": class_name,
-            "category": categoria_map.get(class_name, "UNCLASSIFIED"),
+            "category": categoria_detectada,
             "confidence": float(f"{dados_deteccao['confidence']:.2f}"),
-            "status": status_map.get(class_name, "N/A")
+            "status": status_map.get(class_name, f"{class_name} (N/A)")
         }
+
+        # --- LOG CRÍTICO PARA DEBUG ---
+        print(f" [web] DEBUG PAYLOAD: Type='{class_name}' -> Cat='{categoria_detectada}'")
+        # ------------------------------
 
         print(f" [web] Enviando para NestJS: {dto_para_nest}")
         response = requests.post(NESTJS_API_URL, json=dto_para_nest, timeout=2)
@@ -215,7 +231,7 @@ def inference_tracking_loop():
 
         # 3. Inferência na imagem (pode ser a cortada ou a cheia)
         # persist=True é importante para manter o ID do tracking mesmo se o objeto mover
-        results = model.track(frame_para_ia, persist=True, conf=0.5, verbose=False)
+        results = model.track(frame_para_ia, persist=True, conf=settings.CONFIDENCE_THRESHOLD, verbose=False)
         
         # 4. VISUALIZAÇÃO INTELIGENTE
         # O plot() desenha as caixas na imagem que foi processada (o recorte)
@@ -326,9 +342,7 @@ def generate_annotated_frames():
                 continue
             frame_bytes = latest_annotated_frame
             frame_count += 1
-            if frame_count % 30 == 0:  # Log a cada 30 frames
-                print(f" [web] Stream ativo: {frame_count} frames enviados")
-        
+            
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 

@@ -70,6 +70,17 @@ export default function LiveMonitor() {
     }
   }, [detections, isEnabled, speakText, lastSpokenId]);
 
+  // Função auxiliar para cores dinâmicas
+  const getBadgeColor = (category: string) => {
+    switch (category) {
+      case 'A': return 'bg-blue-500/20 text-blue-400';
+      case 'B': return 'bg-green-500/20 text-green-400';
+      case 'C': return 'bg-purple-500/20 text-purple-400';
+      case 'D': return 'bg-orange-500/20 text-orange-400'; // Nova cor para D
+      default: return 'bg-gray-500/20 text-gray-400';
+    }
+  };
+
   // --- FUNÇÃO PARA RENDERIZAR A TABELA ---
   const renderDetectionRows = () => {
     if (isLoadingDetections) {
@@ -95,21 +106,16 @@ export default function LiveMonitor() {
         <tr><td colSpan={5} className="p-4 text-center text-gray-500">Nenhuma detecção registrada ainda.</td></tr>
       );
     }
+
     return detections?.map((detection) => (
       <tr key={detection.id} className="border-t border-gray-800 hover:bg-gray-800/50">
         <td className="px-4 py-3 text-sm">{new Date(detection.timestamp).toLocaleTimeString()}</td>
-        <td className="px-4 py-3 text-sm">{detection.type}</td>
+        <td className="px-4 py-3 text-sm font-medium">{detection.type}</td>
         <td className="px-4 py-3">
           <span
-            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-              detection.category === 'A'
-                ? 'bg-blue-500/20 text-blue-400'
-                : detection.category === 'B'
-                ? 'bg-green-500/20 text-green-400'
-                : 'bg-purple-500/20 text-purple-400'
-            }`}
+            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getBadgeColor(detection.category)}`}
           >
-            {detection.status}
+            {detection.status || `${detection.category} (Auto)`}
           </span>
         </td>
         <td className="px-4 py-3 text-sm">{detection.confidence}%</td>
@@ -205,23 +211,33 @@ export default function LiveMonitor() {
                 <p className="text-sm text-red-400">Erro ao carregar estatísticas.</p>
               ) : (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500 rounded-full" /><span className="text-sm text-gray-300">Category A</span></div>
-                    <span className="text-2xl font-bold">{stats?.itemSeparation.categoryA}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2"><div className="w-3 h-3 bg-green-500 rounded-full" /><span className="text-sm text-gray-300">Category B</span></div>
-                    <span className="text-2xl font-bold">{stats?.itemSeparation.categoryB}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2"><div className="w-3 h-3 bg-purple-500 rounded-full" /><span className="text-sm text-gray-300">Category C</span></div>
-                    <span className="text-2xl font-bold">{stats?.itemSeparation.categoryC}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2"><div className="w-3 h-3 bg-yellow-500 rounded-full" /><span className="text-sm text-gray-300">Unclassified</span></div>
-                    <span className="text-2xl font-bold text-yellow-500">{stats?.itemSeparation.unclassified}</span>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500 rounded-full" /><span className="text-sm text-gray-300">Category A</span></div>
+                  <span className="text-2xl font-bold">{stats?.itemSeparation.categoryA}</span>
                 </div>
+              
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 bg-green-500 rounded-full" /><span className="text-sm text-gray-300">Category B</span></div>
+                  <span className="text-2xl font-bold">{stats?.itemSeparation.categoryB}</span>
+                </div>
+              
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 bg-purple-500 rounded-full" /><span className="text-sm text-gray-300">Category C</span></div>
+                  <span className="text-2xl font-bold">{stats?.itemSeparation.categoryC}</span>
+                </div>
+              
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-orange-500 rounded-full" />
+                    <span className="text-sm text-gray-300">Category D</span>
+                  </div>
+                  <span className="text-2xl font-bold">{stats?.itemSeparation.categoryD}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 bg-yellow-500 rounded-full" /><span className="text-sm text-gray-300">Unclassified</span></div>
+                  <span className="text-2xl font-bold text-yellow-500">{stats?.itemSeparation.unclassified}</span>
+                </div>
+              </div>
               )}
             </Card>
 

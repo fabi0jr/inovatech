@@ -3,6 +3,7 @@ import os
 # --- Configurações da IA ---
 MODEL_PATH = "models/best.pt"
 ZONA_DE_DECISAO_X = 320
+CONFIDENCE_THRESHOLD = 0.6
 CAMERA_ROIS = {
     '0': [172, 168, 455, 351]
 }
