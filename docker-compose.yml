@@ -80,11 +80,11 @@ services:
       - "5001:5001"
     privileged: true
     devices:
-      - "/dev/video0:/dev/video0"
+      - "/dev/video2:/dev/video2"
     environment:
       - PYTHONUNBUFFERED=1
       - NESTJS_HEARTBEAT_URL=http://backend:3001/stats/heartbeat
-      - VIDEOCAPTUREID=0
+      - VIDEOCAPTUREID=2
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
       interval: 10s
@@ -131,6 +131,26 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
+  # ---------------------------
+  # NODE RABBITMQ (Arduino Serial)
+  # ---------------------------
+  node-rabbitmq:
+    build:
+      context: ./NodeRabbitMQ
+      dockerfile: Dockerfile
+    container_name: ino-node-rabbitmq
+    privileged: true
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - SERIAL_PORT=/dev/ttyUSB0
+    depends_on:
+      rabbitmq:
+        condition: service_started
+    networks:
+      - robo-net
 
 # Definição da Rede e Volumes
 networks:

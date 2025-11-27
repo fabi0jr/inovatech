@@ -3,9 +3,10 @@ const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
 
 // --- CONFIGURAÇÕES ---
-const RABBIT_URL = 'amqp://localhost'; 
+const RABBITMQ_HOST = process.env.RABBITMQ_HOST || 'localhost';
+const RABBIT_URL = `amqp://${RABBITMQ_HOST}`; 
 const QUEUE_NAME = 'fila_deteccao'; 
-const CAMINHO_PORTA = 'COM8'; // CONFIRA SUA PORTA
+const CAMINHO_PORTA = process.env.SERIAL_PORT || '/dev/ttyUSB0'; // CONFIRA SUA PORTA
 const BAUD_RATE = 9600;
 
 // Configuração de Persistência
@@ -67,14 +68,14 @@ function processarMensagem(msg) {
     try {
         const conteudo = msg.content.toString();
         const dados = JSON.parse(conteudo);
-        const objeto = dados.classe ? dados.classe.toLowerCase() : 'desc';
+        const objeto = dados.decisao_direcao ? dados.decisao_direcao.toLowerCase() : 'desc';
         console.log(`\n[RABBIT] Objeto: ${objeto}`);
 
         let comando = null;
 
-        if (objeto.includes('metal') || objeto.includes('parafuso')) {
+        if (objeto.includes('direita')) {
             comando = 'D';
-        } else if (objeto.includes('plastico') || objeto.includes('tampa')) {
+        } else if (objeto.includes('esquerda')) {
             comando = 'E';
         } else {
             // --- CORREÇÃO AQUI ---

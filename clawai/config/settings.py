@@ -1,7 +1,7 @@
 import os
 
 # --- Configurações da IA ---
-MODEL_PATH = "models/paperBall.pt"
+MODEL_PATH = "models/best.pt"
 ZONA_DE_DECISAO_X = 320
 
 # --- Configurações de Rede dos Serviços ---
